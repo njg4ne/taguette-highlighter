@@ -48,7 +48,7 @@ function ThemeChoice({ theme } = { theme: "auto" }) {
     "data-bs-theme-value": theme,
     "data-bs-toggle": "button",
     type: "button",
-    "data-bs-theme": theme,
+    // "data-bs-theme": theme,
   };
   if (activeAndPressed) {
     bProps["aria-pressed"] = "true";
