@@ -1,28 +1,27 @@
-:root {
+/* :root {
+  color-scheme: dark light;
+  --color-bg-light: hsl(0, 4%, 95%);
+  --color-fg-light: hsl(0, 0%, 0%);
+  --color-bg-dark: hsl(0, 0%, 11%);
+  --color-fg-dark: hsl(0, 0%, 100%);
+  color: light-dark(var(--color-fg-light), var(--color-fg-dark));
+  background-color: light-dark(var(--color-bg-light), var(--color-bg-dark));
+} */
+
+/* :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color-scheme: dark light;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
+} */
 
 :root,
 button {
   font-size: large;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: black;
-    background-color: #bfdbde;
-    color-scheme: light;
-  }
 }
 
 h1 a {
@@ -47,16 +46,17 @@ main {
   flex-grow: 1;
 }
 body {
-  display: flex;
+  /* display: flex;
   flex-direction: column;
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0.5rem;
+  box-sizing: border-box; */
+  /* margin: 0; */
+  /* padding: 0.5rem; */
   min-height: 100vh;
   min-height: 100dvh;
 }
 footer {
   text-align: center;
+  padding-bottom: 0.125rem;
 }
 main {
   padding-block: 0.5rem;
