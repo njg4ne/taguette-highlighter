@@ -1,0 +1,8 @@
+#document-view {
+  /* z-index: 0; */
+  position: relative;
+}
+/* .hidden {
+  visibility: hidden;
+  pointer-events: none;
+} */

@@ -1,9 +1,0 @@
-.document-view {
-  color-scheme: dark; /* dark mode only for now */
-  flex-grow: 1;
-  min-height: 1cm;
-  min-width: 1cm;
-  background-color: rgb(44, 43, 43);
-  color: white;
-  padding: 0.5rem;
-}

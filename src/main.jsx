@@ -2,8 +2,9 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import ThemeToggle from "./components/ThemeToggle";
 import "./index.css";
-import "./App.css";
+
 import "./bootstrap";
+import DocumentView from "./DocumentView";
 
 createRoot(document.querySelector("body")).render(
   <StrictMode>
@@ -24,7 +25,7 @@ function App() {
         </nav> */}
       </header>
       <main>
-        <div className="document-view">text contents</div>
+        <DocumentView />
       </main>
       <footer>Footer</footer>
     </>
