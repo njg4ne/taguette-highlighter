@@ -37,6 +37,7 @@ export default function DocumentView() {
   };
   const highlights = [...highlightMap.values()];
   const ranges = highlights.flatMap((h) => h.parsedRanges);
+  console.log("rendering highlights", highlights.length);
   const rects = ranges.flatMap((r) => r.uniqueRects);
 
   // const highlights = [];
@@ -181,6 +182,8 @@ function RectsView({ rects }) {
   return <>{rects.map(renderRect)}</>;
 }
 function renderRect(rect) {
+  // add the scroll offset of the document view to the rect
+
   const styles = {
     left: `${rect.x}px`,
     top: `${rect.y}px`,

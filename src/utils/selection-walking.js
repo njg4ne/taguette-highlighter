@@ -37,15 +37,22 @@ export function parseSelection(elWithin = undefined) {
 }
 
 function nodesToRects(nodes) {
-  return nodes
-    .map((node) => {
-      const range = document.createRange();
-      range.selectNodeContents(node);
-      return range.getBoundingClientRect();
-    })
-    .filter(({ width, height }) => {
-      return width > 0 && height > 0;
-    });
+  return (
+    nodes
+      // .flatMap((node) => {
+      //   const range = document.createRange();
+      //   range.selectNodeContents(node);
+      //   return [...range.getClientRects()];
+      // })
+      .map((node) => {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        return range.getBoundingClientRect();
+      })
+      .filter(({ width, height }) => {
+        return width > 0 && height > 0;
+      })
+  );
 }
 
 /**
@@ -74,6 +81,9 @@ function parseRange(range) {
     id,
   };
 }
+
+// function addScrollOffsets
+
 /**
  *
  * @param {Range} range
@@ -88,12 +98,15 @@ function collectNodes(range) {
   const tW = document.createTreeWalker(aC, NodeFilter.SHOW_ALL);
   for (; tW.currentNode && tW.currentNode !== sC; tW.nextNode());
   let nodes = [];
-  for (
-    ;
-    tW.currentNode && range.intersectsNode(tW.currentNode);
-    nodes.push(tW.currentNode), tW.nextNode()
-  );
-  // nodes = nodes.reduce(getNodeReducer(range), []);
+  for (; tW.currentNode && range.intersectsNode(tW.currentNode); ) {
+    nodes.push(tW.currentNode);
+    tW.nextNode();
+    if (nodes.includes(tW.currentNode)) {
+      break;
+    }
+  }
+  nodes = nodes.reduce(getNodeReducer(range), []);
+  console.log("nodes", nodes);
   return nodes;
 }
 
@@ -103,21 +116,27 @@ const getNodeReducer = (range) => (acc, n) => {
     endContainer: eC,
     // commonAncestorContainer: aC,
   } = range;
-  if (n.nodeType !== Node.TEXT_NODE || (!sC.contains(n) && !eC.contains(n))) {
+  if (
+    // !sC.contains(n) &&
+    // !eC.contains(n) &&
+    !n.contains(sC) &&
+    !n.contains(eC)
+  ) {
     acc.push(n);
     return acc;
   }
   if (sC === n && sC === eC) {
-    console.log("discarding both");
     n.splitText(range.endOffset); // discard end
     acc.push(n.splitText(range.startOffset)); // discard start
-    console.log("discarded both");
   } else if (sC === n) {
     acc.push(n.splitText(range.startOffset)); // discard start
   } else if (eC === n) {
-    acc.push(n.splitText(range.endOffset)); // discard end
-  } else {
-    acc.push(n);
+    const end = n.splitText(range.endOffset);
+    // if it is a text node log the end
+    if (n.nodeType === Node.TEXT_NODE) {
+      console.log("end", end.nodeValue);
+    }
+    acc.push(n); // discard end
   }
   return acc;
 };
