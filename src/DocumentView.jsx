@@ -12,6 +12,13 @@ import {
   locatePos,
   stringIsAllWhitespace,
 } from "./utils/taguette";
+import {
+  getNodeTypeString,
+  simplifySelection,
+  nodeToString,
+  rangeFullyInElement,
+  parseSelection,
+} from "./utils/selection-walking";
 
 async function hash(object) {
   const sc = window.crypto.subtle;
@@ -29,11 +36,16 @@ export default function DocumentView() {
     setHighlightMap((m) => new Map(m).set(h.id, h));
   };
   const highlights = [...highlightMap.values()];
+  const ranges = highlights.flatMap((h) => h.parsedRanges);
+  const rects = ranges.flatMap((r) => r.uniqueRects);
+
+  // const highlights = [];
   useEffect(() => {
+    console.log("rects", rects);
     // console.log("Put", ...(highlights.at(0)?.ranges || []));
-  }, [highlights]);
+  }, [rects]);
   return (
-    <DocumentHighlighter {...{ highlights, putHighlight }}>
+    <DocumentHighlighter {...{ rects, putHighlight }}>
       <DocumentContents {...{ highlights }} />
     </DocumentHighlighter>
   );
@@ -45,7 +57,7 @@ export default function DocumentView() {
 //     .join(",");
 // }
 
-function DocumentHighlighter({ children, highlights, putHighlight }) {
+function DocumentHighlighter({ children, rects, putHighlight }) {
   const ref = useRef(null);
   const frameRef = useRef(null);
   const [popperEl, setPopperEl] = useState(null);
@@ -88,12 +100,16 @@ function DocumentHighlighter({ children, highlights, putHighlight }) {
     const tRanges = domRanges.map(TaguetteRange);
     let rangesStr = tRanges.map((r) => r.toString()).join("-and-");
     rangesStr = `doc-ranges-${rangesStr}`;
-    const highlight = {
-      id: rangesStr,
-      text,
-      ranges: tRanges,
-    };
-    putHighlight(highlight);
+    // const uniqueNodes = getUniqueNodesFromSelection();
+    const parsed = parseSelection();
+    console.log("Parsed", parsed);
+
+    // const highlight = {
+    //   id: rangesStr,
+    //   ...simplifySelection(ref.current),
+    // };
+    // console.log("Highlight", highlight);
+    putHighlight(parsed);
     document.getSelection().removeAllRanges();
     return tRanges;
   }
@@ -155,9 +171,26 @@ function DocumentHighlighter({ children, highlights, putHighlight }) {
         onClick={createHighlight}
         onHover={setHoveringPopover}
       />
-      <HighlightViews highlights={highlights} docViewRef={ref} />
+      <RectsView rects={rects} />
+      {/* <HighlightViews highlights={highlights} docViewRef={ref} /> */}
     </div>
   );
+}
+
+function RectsView({ rects }) {
+  return <>{rects.map(renderRect)}</>;
+}
+function renderRect(rect) {
+  const styles = {
+    left: `${rect.x}px`,
+    top: `${rect.y}px`,
+    width: `${rect.width}px`,
+    height: `${rect.height}px`,
+    backgroundColor: "rgba(255, 157, 0, 0.2)",
+    zIndex: "-1",
+    position: "absolute",
+  };
+  return <div style={styles} key={window.crypto.randomUUID()} />;
 }
 
 function DocumentContents({ highlights }) {
@@ -180,17 +213,21 @@ function HighlightViews({ highlights, docViewRef }) {
   );
 }
 function HighlightView({ highlight, docViewRef, id }) {
-  const ranges = highlight.ranges.map((r) => r.domRange);
-  useEffect(() => {
-    for (const r of ranges) {
-      // console.log("text is", r.toString().trim().length);
-    }
-  }, [ranges]);
-  let rects = rectsForRanges(ranges);
+  // const ranges = highlight.ranges.map((r) => r.domRange);
+  // useEffect(() => {
+  //   for (const r of ranges) {
+  //     // console.log("text is", r.toString().trim().length);
+  //   }
+  // }, [ranges]);
+  // let rects = rectsForRanges(ranges);
   // console.log("Rects", rects);
   // reduce these, dropping any where this rectandgle is within the next
-  rects = removeOverlappingRects(...rects);
+  // rects = removeOverlappingRects(...rects);
+  const { ranges, nodeGroups, rectGroups } = highlight;
+  // take node groups from a list of lists to a flat list of nodes
+  const rects = rectGroups.flatMap((r) => r);
   const rect = getBoundingRect(docViewRef.current, ...rects);
+  console.log("Highlight rect", rect);
   // console.log("No rects for highlight", highlight.ranges.length);
   if (!rect) {
     // console.log("No rects for highlight", highlight.ranges.length);
@@ -220,15 +257,16 @@ function HighlightView({ highlight, docViewRef, id }) {
   return (
     <>
       <div {...{ style: divStyle, id }} aria-hidden={true}>
-        {ranges.map((range, i, c) => {
+        {rectGroups.map((rects, i, c) => {
           const first = i === 0;
           const last = i === c.length - 1;
-          const nextId = `${id}-range-${range.id}`;
+          // const nextId = `${id}-range-${range.id}`;
+          const nextId = window.crypto.randomUUID();
           return (
             <HighlightRange
               key={nextId}
               {...{
-                range,
+                rects,
                 docViewRef,
                 id: nextId,
                 first,
@@ -247,10 +285,10 @@ function HighlightView({ highlight, docViewRef, id }) {
     </>
   );
 }
-function HighlightRange({ range, docViewRef, id, first, last, parentRect }) {
+function HighlightRange({ rects, docViewRef, id, first, last, parentRect }) {
   if (!docViewRef?.current) return null;
 
-  let rects = removeOverlappingRects(...range.getClientRects());
+  // let rects = removeOverlappingRects(...range.getClientRects());
 
   return (
     <>
@@ -297,20 +335,6 @@ function HighlightRangePart({ rect, first, last, id }) {
   return <div {...{ style, className, id }} />;
 }
 
-function isElNode(node) {
-  return node.nodeType === Node.ELEMENT_NODE;
-}
-function isBody(node) {
-  return node === document.body;
-}
-function rangeFullyInElement(range, el) {
-  let ancestor = range.commonAncestorContainer;
-  while (!isElNode(ancestor) && !isBody(ancestor)) {
-    ancestor = ancestor.parentNode;
-  }
-  return el.contains(ancestor);
-}
-
 function handleSelectionChange(e, elementWithin, onRanges) {
   // console.log("selection change", e);
   const s = e.target.getSelection();
@@ -342,11 +366,11 @@ function getBoundingRect(container, ...domRects) {
   const containerRect = container.getBoundingClientRect();
   const cT = containerRect.top,
     cL = containerRect.left;
-  // const oT = container.offsetTop,
-  //   oL = container.offsetLeft;
+  const oT = container.offsetTop,
+    oL = container.offsetLeft;
   // console.log(`oT: ${oT}, oL: ${oL}, cT: ${cT}, cL: ${cL}`);
-  const offX = -cL,
-    offY = -cT;
+  const offX = -cL + oL,
+    offY = -cT + oT;
   // position is relative on the container, so we offset by where its top
   return new DOMRect(x1 + offX, y1 + offY, x2 - x1, y2 - y1);
 }
@@ -369,6 +393,7 @@ function rectInRect(a, b) {
 }
 
 function removeOverlappingRects(...rects) {
+  return rects;
   return rects.reduce((newArr, r, i, arr) => {
     if (i === 0) return newArr.concat(r);
     const prevR = arr[i - 1];
